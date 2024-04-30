@@ -41,7 +41,7 @@ export default {
                 .setView([0, 0], 2);
             L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 18,
+                maxZoom: 25,
                 minZoom: 2
             }).addTo(this.map);
             this.map.on('click', (e) => this.$emit('map-click', e.latlng));

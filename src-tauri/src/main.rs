@@ -2,6 +2,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 
+mod utils;
+mod coordinates;
 mod image;
 use glob::glob;
 
@@ -30,15 +32,15 @@ fn open(path: &str) -> Result<Vec<image::Image>, String> {
 
 /// Opens a folder, reads all the images in it and returns a list of "image" structures
 #[tauri::command]
-fn write(file: image::Image) -> Result<(), String> {
-    Err("Not implemented".to_string())
+fn save_image(file: image::Image) -> Result<(), String> {
+    file.save()
 }
 
 
 fn main() {
     env_logger::init();
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![open, write])
+        .invoke_handler(tauri::generate_handler![open, save_image])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

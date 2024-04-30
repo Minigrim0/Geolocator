@@ -4,10 +4,11 @@
         <h1 class="title">Geolocator</h1>
         <small><button @click="load_folder()">Load folder</button></small>
         <div v-if="current_image" class="top-pic">
-            <img :src="current_image.name" class="fit-content" />
+            <img :src="current_image.display_path" class="fit-content" />
         </div>
-        <div class="confirm-button">
-            <button @click="confirm()">Confirm</button>
+        <div class="control-buttons" v-if="current_image !== null">
+            <button v-if="current_image_coordinates !== null" @click="confirm()">Confirm</button>
+            <button @click="skip()">Next</button>
         </div>
         <div id="container" class="interactive-map">
             <Map :coords="current_image_coordinates" @map-click="(e) => setPicturePosition(e)" />
@@ -33,18 +34,10 @@ export default {
     },
     computed: {
         current_image() {
-            if (this.images.length > 0) {
-                return this.images[0];
-            } else {
-                return null;
-            }
+            return (this.images.length > 0) ? this.images[0] : null;
         },
         current_image_coordinates() {
-            if (this.current_image) {
-                return this.current_image.coordinates;
-            } else {
-                return null;
-            }
+            return (this.current_image) ? this.current_image.coordinates: null;
         }
     },
     methods: {
@@ -52,25 +45,39 @@ export default {
             dialog
                 .open({directory: true, multiple: true})
                 .then((result) => {
-                    if (result == null) {
-                        return;
-                    }
+                    if (result == null) return;
                     for (const path of result) {
                         invoke("tauri", {cmd: "open", path: path})
-                        .then((files) => {
-                            files.forEach(element => {
-                                element.name = convertFileSrc(element.name);
+                            .then((files) => {
+                                files.forEach(element => {
+                                    element.display_path = convertFileSrc(element.path);
+                                    if (element.coordinates) element.coordinates = this.DMStoFloat(element.coordinates);
+                                });
+                                this.images.push(...files);
+                            })
+                            .catch((err) => {
+                                console.error(err);
                             });
-                            this.images.push(...files);
-                        })
-                        .catch((err) => {
-                            console.error(err);
-                        });
                     }
                 })
                 .catch((err) => {
                     console.error(err);
                 });
+        },
+        DMStoFloat(coords) {
+            console.log("Converting DMS to decimal:", coords);
+            return L.latLng(
+                (coords.latitude[0] == "S" ? -1 : 1) * coords.latitude[1] + coords.latitude[2] / 60 + coords.latitude[3] / 3600,
+                (coords.longitude[0] == "W" ? -1 : 1) * coords.longitude[1] + coords.longitude[2] / 60 + coords.longitude[3] / 3600
+            );
+        },
+        FloatToDMS: function (D, long) {
+            return [
+                long ? (D < 0 ? 'W' : 'E') : (D < 0 ? 'S' : 'N'),
+                (0 | Math.abs((D < 0 ? (D = -D) : D))),
+                (0 | Math.abs((((D += 1e-9) % 1) * 60))),
+                (0 | Math.abs((((D * 60) % 1) * 6000)) / 100),
+            ];
         },
         setPicturePosition: function (e) {
             if (this.images.length == 0) {
@@ -79,27 +86,25 @@ export default {
 
             this.images[0].coordinates = e;
         },
-        floatToDMS: function (D) {
-            return [
-                0 | (D < 0 ? (D = -D) : D),
-                0 | (((D += 1e-9) % 1) * 60),
-                (0 | (((D * 60) % 1) * 6000)) / 100
-            ];
-        },
         confirm() {
-            invoke("tauri", {cmd: "write", file: {
-                name: this.images[0].path,
+            let file = {
+                path: this.images[0].path,
                 coordinates: {
-                    latitude: this.floatToDMS(this.images[0].coordinates.lat),
-                    longitude: this.floatToDMS(this.images[0].coordinates.lng)
+                    latitude: this.FloatToDMS(this.images[0].coordinates.lat, false),
+                    longitude: this.FloatToDMS(this.images[0].coordinates.lng, true)
                 }
-            }})
-            .then((result) => {
-                console.log(result);
-            })
-            .catch((err) => {
-                console.error(err);
-            });
+            }
+            invoke("tauri", {cmd: "save_image", file: file})
+                .then((result) => {
+                    console.log(result);
+                    this.images.shift();
+                })
+                .catch((err) => {
+                    console.error(err);
+                });
+        },
+        skip() {
+            this.images.shift();
         }
     },
 };
@@ -149,11 +154,10 @@ body {
     height: 100vh;
 }
 
-.confirm-button {
+.control-buttons {
     position: absolute;
     bottom: 5px;
     right: 5px;
     z-index: 1000;
-    background-color: rgba(128, 255, 128, 0.5);
 }
 </style>
