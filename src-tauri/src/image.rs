@@ -2,10 +2,10 @@ use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use exif::{self, In, Tag, Field, Value};
 use exif::experimental::Writer;
-use img_parts::jpeg::{markers, Jpeg, JpegSegment};
-use img_parts::{Bytes, ImageEXIF};
+use img_parts::jpeg::Jpeg;
+use img_parts::ImageEXIF;
 
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 use std::fs::{self, File};
 use std::path::Path;
 use super::coordinates::Coordinates;
@@ -22,13 +22,23 @@ impl Image {
         info!("Working on file: {}", file_path);
         let file = match std::fs::File::open(file_path) {
             Ok(file) => file,
-            Err(e) => return Err(format!("Error opening file: {:?}", e)),
+            Err(e) => {
+                error!("Error opening file: {:?}", e);
+                return Err("Unable to open the file".to_string());
+            },
         };
+
         let mut bufreader = std::io::BufReader::new(&file);
         let exifreader = exif::Reader::new();
         let exif = match exifreader.read_from_container(&mut bufreader){
             Ok(exif) => exif,
-            Err(e) => return Err(format!("Error reading exif data: {:?}", e)),
+            Err(e) => {
+                warn!("Unable to read exif data: {:?}", e);
+                return Ok(Image {
+                    path: file_path.to_string(),
+                    coordinates: None,
+                });
+            },
         };
 
         let mut coordinates = ('N', Vec::new(), 'E', Vec::new());
@@ -36,7 +46,10 @@ impl Image {
             Some(field) => {
                 coordinates.1 = match &field.value {
                     Value::Rational(value) => value.iter().map(|&x| x.num as f64 / x.denom as f64).collect(),
-                    _ => return Err("GPSLatitude has Invalid value".to_string())
+                    _ => {
+                        warn!("GPSLatitude has Invalid value: {:?}", field.value);
+                        vec![0.0, 0.0, 0.0]
+                    }
                 };
             },
             None => warn!("Unable to find GPSLatitude"),
@@ -46,7 +59,10 @@ impl Image {
             Some(field) => {
                 coordinates.0 = match &field.value {
                     Value::Ascii(value) => value[0][0] as char,
-                    _ => return Err(format!("GPSLatitudeRef has Invalid value {:?}", field.value))
+                    _ => {
+                        warn!("GPSLatitudeRef has Invalid value: {:?}", field.value);
+                        'N'
+                    }
                 };
             },
             None => warn!("Unable to find GPSLatitudeRef"),
@@ -56,7 +72,10 @@ impl Image {
             Some(field) => {
                 coordinates.3 = match &field.value {
                     Value::Rational(value) => value.iter().map(|&x| x.num as f64 / x.denom as f64).collect(),
-                    _ => return Err("GPSLongitude has Invalid value".to_string())
+                    _ => {
+                        warn!("GPSLongitude has Invalid value: {:?}", field.value);
+                        vec![0.0, 0.0, 0.0]
+                    }
                 };
             },
             None => warn!("Unable to find GPSLongitude"),
@@ -66,7 +85,10 @@ impl Image {
             Some(field) => {
                 coordinates.2 = match &field.value {
                     Value::Ascii(value) => value[0][0] as char,
-                    _ => return Err(format!("GPSLatitudeRef has Invalid value {:?}", field.value))
+                    _ => {
+                        warn!("GPSLongitudeRef has Invalid value: {:?}", field.value);
+                        'E'
+                    }
                 };
             },
             None => warn!("Unable to find GPSLatitudeRef"),
@@ -74,7 +96,10 @@ impl Image {
 
         let coordinates: Option<Coordinates> = match coordinates {
             (latref, lat, lonref, lon) if !lat.is_empty() && !lon.is_empty() => Coordinates::from_4uple((latref, lat, lonref, lon)),
-            _ => None
+            _ => {
+                warn!("Unable to create Coordinates: {:?}", coordinates);
+                None
+            }
         };
 
         Ok(Image {

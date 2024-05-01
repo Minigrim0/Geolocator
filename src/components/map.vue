@@ -17,7 +17,12 @@ export default {
     data() {
         return {
             map: null,
-            marker: null
+            marker: null,
+            default_icon: window.L.icon({
+                iconUrl: '/marker.svg',
+                iconSize: [50, 50],
+                iconAnchor: [25, 49]
+            })
         };
     },
     watch: {
@@ -27,7 +32,7 @@ export default {
             }
 
             if (new_coords) {
-                this.marker = new L.marker(new_coords)
+                this.marker = new L.marker(new_coords, {icon: this.default_icon})
                 this.marker.addTo(this.map);
             }
         }

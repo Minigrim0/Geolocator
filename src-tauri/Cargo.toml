@@ -1,7 +1,7 @@
 [package]
-name = "Geolocator"
-version = "0.0.0"
-description = "An application to geolocate images"
+name = "geolocator"
+version = "0.0.2"
+description = "Geolocator"
 authors = ["Minigrim0"]
 license = ""
 repository = ""

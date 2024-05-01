@@ -5,10 +5,12 @@
         <small><button @click="load_folder()">Load folder</button></small>
         <div v-if="current_image" class="top-pic">
             <img :src="current_image.display_path" class="fit-content" />
+            <p>{{ this.index + 1 }} / {{ this.images.length }}</p>
         </div>
         <div class="control-buttons" v-if="current_image !== null">
+            <button @click="previous()">Previous</button>
             <button v-if="current_image_coordinates !== null" @click="confirm()">Confirm</button>
-            <button @click="skip()">Next</button>
+            <button @click="next()">Next</button>
         </div>
         <div id="container" class="interactive-map">
             <Map :coords="current_image_coordinates" @map-click="(e) => setPicturePosition(e)" />
@@ -30,14 +32,18 @@ export default {
     data() {
         return {
             images: [],
+            index: 0,
         };
     },
     computed: {
         current_image() {
-            return (this.images.length > 0) ? this.images[0] : null;
+            return (this.images.length > 0 && this.index < this.images.length) ? this.images[this.index] : null;
         },
         current_image_coordinates() {
             return (this.current_image) ? this.current_image.coordinates: null;
+        },
+        images_left() {
+            return this.images.length - this.index;
         }
     },
     methods: {
@@ -65,7 +71,6 @@ export default {
                 });
         },
         DMStoFloat(coords) {
-            console.log("Converting DMS to decimal:", coords);
             return L.latLng(
                 (coords.latitude[0] == "S" ? -1 : 1) * coords.latitude[1] + coords.latitude[2] / 60 + coords.latitude[3] / 3600,
                 (coords.longitude[0] == "W" ? -1 : 1) * coords.longitude[1] + coords.longitude[2] / 60 + coords.longitude[3] / 3600
@@ -84,27 +89,38 @@ export default {
                 return;
             }
 
-            this.images[0].coordinates = e;
+            this.images[this.index].coordinates = e;
+        },
+        updateIndex(offset) {
+            this.index += offset;
+            if (this.index < 0) {
+                this.index = this.images.length - 1;
+            } else if (this.index >= this.images.length) {
+                this.index = 0;
+            }
         },
         confirm() {
             let file = {
-                path: this.images[0].path,
+                path: this.images[this.index].path,
                 coordinates: {
-                    latitude: this.FloatToDMS(this.images[0].coordinates.lat, false),
-                    longitude: this.FloatToDMS(this.images[0].coordinates.lng, true)
+                    latitude: this.FloatToDMS(this.images[this.index].coordinates.lat, false),
+                    longitude: this.FloatToDMS(this.images[this.index].coordinates.lng, true)
                 }
             }
             invoke("tauri", {cmd: "save_image", file: file})
-                .then((result) => {
-                    console.log(result);
-                    this.images.shift();
+                .then((_) => {
+                    this.updateIndex(1);
                 })
                 .catch((err) => {
+                    // TODO; Handle
                     console.error(err);
                 });
         },
-        skip() {
-            this.images.shift();
+        next() {
+            this.updateIndex(1);
+        },
+        previous() {
+            this.updateIndex(-1);
         }
     },
 };
@@ -121,12 +137,14 @@ body {
 }
 
 .top-pic {
+    color: black;
+    font-family: Arial, sans-serif;
     position: absolute;
     top: 5px;
     right: 5px;
     z-index: 1000;
-    max-width: 10vw;
-    max-height: 10vh;
+    max-width: 15vw;
+    max-height: 15vh;
 }
 
 .fit-content {

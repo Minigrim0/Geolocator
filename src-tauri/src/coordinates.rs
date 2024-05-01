@@ -1,7 +1,6 @@
-use log::{info, error, warn};
 use serde::{Deserialize, Serialize};
-use exif::{self, In, Rational};
-use fraction::{Fraction, GenericFraction, Sign};
+use exif::{self, Rational};
+use fraction::Fraction;
 
 use super::utils::frac_to_tuple;
 
