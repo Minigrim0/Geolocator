@@ -154,7 +154,7 @@ impl Image {
             error!("Error writing exif data: {:?}", e);
             return Err(format!("Error writing exif data: {:?}", e));
         }
-        
+
         let output_path = Path::new(&self.path);
         info!("Writing to: {:?}", output_path);
         let input = match fs::read(&self.path) {
