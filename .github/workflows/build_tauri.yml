@@ -48,5 +48,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.event.release.tag_name }}
+          releaseId: ${{ github.event.release.id }}
           args: ${{ matrix.args }}
