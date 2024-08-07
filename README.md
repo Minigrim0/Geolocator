@@ -1,7 +1,7 @@
 # Geolocator 🌍
 A tauri app to help localise your pictures.
 
-![application screenshot](.github/screenshot/.png)
+![application screenshot](.github/screenshot.png)
 
 # Usage 🧰
 Start the application (see [building](#building) for details on how to compile), click on the `load folder` button, select the Photo folder you want to locate.
