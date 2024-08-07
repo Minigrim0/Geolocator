@@ -13,3 +13,8 @@ Install rust on your machine (see [rustup](https://rustup.rs) for an easy instal
 Then, from the root of the project type `cargo tauri build` to build the project in release mode. This might also try to build bundles,
 which may lead to errors being displayed in the console. You can safely ignore these if you only need the executable. The executable will be
 located under `src-tauri/target/release/geolocator`.
+
+If you do not wish to compile manually, you can download the latest release from the [releases page](https://github.com/Minigrim0/geolocator/releases).
+
+# License 📜
+This project is licensed under the MIT license. You can find the full license text in the [LICENSE](LICENSE) file.

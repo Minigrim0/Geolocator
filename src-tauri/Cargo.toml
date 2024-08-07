@@ -1,6 +1,6 @@
 [package]
 name = "geolocator"
-version = "0.0.2"
+version = "1.0.0"
 description = "Geolocator"
 authors = ["Minigrim0"]
 license = ""
