@@ -1,15 +1,14 @@
-use log::{error, info, warn};
-use serde::{Deserialize, Serialize};
-use exif::{self, In, Tag, Field, Value};
 use exif::experimental::Writer;
+use exif::{self, Field, In, Tag, Value};
 use img_parts::jpeg::Jpeg;
 use img_parts::ImageEXIF;
+use log::{error, info, warn};
+use serde::{Deserialize, Serialize};
 
-use std::io::Cursor;
-use std::fs::{self, File};
-use std::path::Path;
 use super::coordinates::Coordinates;
-
+use std::fs::{self, File};
+use std::io::Cursor;
+use std::path::Path;
 
 #[derive(Serialize, Deserialize)]
 pub struct Image {
@@ -25,12 +24,12 @@ impl Image {
             Err(e) => {
                 error!("Error opening file: {:?}", e);
                 return Err("Unable to open the file".to_string());
-            },
+            }
         };
 
         let mut bufreader = std::io::BufReader::new(&file);
         let exifreader = exif::Reader::new();
-        let exif = match exifreader.read_from_container(&mut bufreader){
+        let exif = match exifreader.read_from_container(&mut bufreader) {
             Ok(exif) => exif,
             Err(e) => {
                 warn!("Unable to read exif data: {:?}", e);
@@ -38,20 +37,23 @@ impl Image {
                     path: file_path.to_string(),
                     coordinates: None,
                 });
-            },
+            }
         };
 
         let mut coordinates = ('N', Vec::new(), 'E', Vec::new());
         match exif.get_field(Tag::GPSLatitude, In::PRIMARY) {
             Some(field) => {
                 coordinates.1 = match &field.value {
-                    Value::Rational(value) => value.iter().map(|&x| x.num as f64 / x.denom as f64).collect(),
+                    Value::Rational(value) => value
+                        .iter()
+                        .map(|&x| x.num as f64 / x.denom as f64)
+                        .collect(),
                     _ => {
                         warn!("GPSLatitude has Invalid value: {:?}", field.value);
                         vec![0.0, 0.0, 0.0]
                     }
                 };
-            },
+            }
             None => warn!("Unable to find GPSLatitude"),
         }
 
@@ -64,20 +66,23 @@ impl Image {
                         'N'
                     }
                 };
-            },
+            }
             None => warn!("Unable to find GPSLatitudeRef"),
         }
 
         match exif.get_field(Tag::GPSLongitude, In::PRIMARY) {
             Some(field) => {
                 coordinates.3 = match &field.value {
-                    Value::Rational(value) => value.iter().map(|&x| x.num as f64 / x.denom as f64).collect(),
+                    Value::Rational(value) => value
+                        .iter()
+                        .map(|&x| x.num as f64 / x.denom as f64)
+                        .collect(),
                     _ => {
                         warn!("GPSLongitude has Invalid value: {:?}", field.value);
                         vec![0.0, 0.0, 0.0]
                     }
                 };
-            },
+            }
             None => warn!("Unable to find GPSLongitude"),
         }
 
@@ -90,12 +95,14 @@ impl Image {
                         'E'
                     }
                 };
-            },
+            }
             None => warn!("Unable to find GPSLatitudeRef"),
         }
 
         let coordinates: Option<Coordinates> = match coordinates {
-            (latref, lat, lonref, lon) if !lat.is_empty() && !lon.is_empty() => Coordinates::from_4uple((latref, lat, lonref, lon)),
+            (latref, lat, lonref, lon) if !lat.is_empty() && !lon.is_empty() => {
+                Coordinates::from_4uple((latref, lat, lonref, lon))
+            }
             _ => {
                 warn!("Unable to create Coordinates: {:?}", coordinates);
                 None
@@ -104,7 +111,7 @@ impl Image {
 
         Ok(Image {
             path: file_path.to_string(),
-            coordinates
+            coordinates,
         })
     }
 
@@ -170,7 +177,9 @@ impl Image {
             };
 
             jpeg.set_exif(Some(buffer.into_inner().into()));
-            jpeg.encoder().write_to(output).expect("Failed to write to output file");
+            jpeg.encoder()
+                .write_to(output)
+                .expect("Failed to write to output file");
         } else {
             error!("Unsupported file format: {:?}", self.path.split('.').last());
             return Err("Unsupported file type".to_string());

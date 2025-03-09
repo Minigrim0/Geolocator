@@ -1,4 +1,3 @@
-
 <template>
     <div class="container">
         <h1 class="title">Geolocator</h1>
@@ -9,25 +8,33 @@
         </div>
         <div class="control-buttons" v-if="current_image !== null">
             <button @click="previous()">Previous</button>
-            <button v-if="current_image_coordinates !== null" @click="confirm()">Confirm</button>
+            <button
+                v-if="current_image_coordinates !== null"
+                @click="confirm()"
+            >
+                Confirm
+            </button>
             <button @click="next()">Next</button>
         </div>
         <div id="container" class="interactive-map">
-            <Map :coords="current_image_coordinates" @map-click="(e) => setPicturePosition(e)" />
+            <Map
+                :coords="current_image_coordinates"
+                @map-click="(e) => setPicturePosition(e)"
+            />
         </div>
     </div>
 </template>
 
 <script>
-import { dialog, invoke } from "@tauri-apps/api";
-import { convertFileSrc } from '@tauri-apps/api/tauri';
+import { invoke, convertFileSrc } from "@tauri-apps/api/core";
 
 import Map from "./components/map.vue";
+import * as dialog from "@tauri-apps/plugin-dialog";
 
 export default {
     name: "App",
     components: {
-        Map
+        Map,
     },
     data() {
         return {
@@ -37,27 +44,34 @@ export default {
     },
     computed: {
         current_image() {
-            return (this.images.length > 0 && this.index < this.images.length) ? this.images[this.index] : null;
+            return this.images.length > 0 && this.index < this.images.length
+                ? this.images[this.index]
+                : null;
         },
         current_image_coordinates() {
-            return (this.current_image) ? this.current_image.coordinates: null;
+            return this.current_image ? this.current_image.coordinates : null;
         },
         images_left() {
             return this.images.length - this.index;
-        }
+        },
     },
     methods: {
         load_folder: function () {
             dialog
-                .open({directory: true, multiple: true})
+                .open({ directory: true, multiple: true })
                 .then((result) => {
                     if (result == null) return;
                     for (const path of result) {
-                        invoke("tauri", {cmd: "open", path: path})
+                        invoke("tauri", { cmd: "open", path: path })
                             .then((files) => {
-                                files.forEach(element => {
-                                    element.display_path = convertFileSrc(element.path);
-                                    if (element.coordinates) element.coordinates = this.DMStoFloat(element.coordinates);
+                                files.forEach((element) => {
+                                    element.display_path = convertFileSrc(
+                                        element.path,
+                                    );
+                                    if (element.coordinates)
+                                        element.coordinates = this.DMStoFloat(
+                                            element.coordinates,
+                                        );
                                 });
                                 this.images.push(...files);
                             })
@@ -72,16 +86,20 @@ export default {
         },
         DMStoFloat(coords) {
             return L.latLng(
-                (coords.latitude[0] == "S" ? -1 : 1) * coords.latitude[1] + coords.latitude[2] / 60 + coords.latitude[3] / 3600,
-                (coords.longitude[0] == "W" ? -1 : 1) * coords.longitude[1] + coords.longitude[2] / 60 + coords.longitude[3] / 3600
+                (coords.latitude[0] == "S" ? -1 : 1) * coords.latitude[1] +
+                    coords.latitude[2] / 60 +
+                    coords.latitude[3] / 3600,
+                (coords.longitude[0] == "W" ? -1 : 1) * coords.longitude[1] +
+                    coords.longitude[2] / 60 +
+                    coords.longitude[3] / 3600,
             );
         },
         FloatToDMS: function (D, long) {
             return [
-                long ? (D < 0 ? 'W' : 'E') : (D < 0 ? 'S' : 'N'),
-                (0 | Math.abs((D < 0 ? (D = -D) : D))),
-                (0 | Math.abs((((D += 1e-9) % 1) * 60))),
-                (0 | Math.abs((((D * 60) % 1) * 6000)) / 100),
+                long ? (D < 0 ? "W" : "E") : D < 0 ? "S" : "N",
+                0 | Math.abs(D < 0 ? (D = -D) : D),
+                0 | Math.abs(((D += 1e-9) % 1) * 60),
+                0 | (Math.abs(((D * 60) % 1) * 6000) / 100),
             ];
         },
         setPicturePosition: function (e) {
@@ -103,11 +121,17 @@ export default {
             let file = {
                 path: this.images[this.index].path,
                 coordinates: {
-                    latitude: this.FloatToDMS(this.images[this.index].coordinates.lat, false),
-                    longitude: this.FloatToDMS(this.images[this.index].coordinates.lng, true)
-                }
-            }
-            invoke("tauri", {cmd: "save_image", file: file})
+                    latitude: this.FloatToDMS(
+                        this.images[this.index].coordinates.lat,
+                        false,
+                    ),
+                    longitude: this.FloatToDMS(
+                        this.images[this.index].coordinates.lng,
+                        true,
+                    ),
+                },
+            };
+            invoke("tauri", { cmd: "save_image", file: file })
                 .then((_) => {
                     this.updateIndex(1);
                 })
@@ -121,19 +145,19 @@ export default {
         },
         previous() {
             this.updateIndex(-1);
-        }
+        },
     },
 };
 </script>
 
 <style scoped>
 body {
-  margin: 0 !important;
+    margin: 0 !important;
 }
 
 #mapContainer {
-  width: 100%;
-  height: 100%;
+    width: 100%;
+    height: 100%;
 }
 
 .top-pic {

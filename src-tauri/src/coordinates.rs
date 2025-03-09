@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use exif::{self, Rational};
 use fraction::Fraction;
+use serde::{Deserialize, Serialize};
 
 use super::utils::frac_to_tuple;
 
@@ -11,7 +11,9 @@ pub struct Coordinates {
 }
 
 impl Coordinates {
-    pub fn from_4uple((latref, lat, lonref, lon): (char, Vec<f64>, char, Vec<f64>)) -> Option<Self> {
+    pub fn from_4uple(
+        (latref, lat, lonref, lon): (char, Vec<f64>, char, Vec<f64>),
+    ) -> Option<Self> {
         if lat.len() != 3 || lon.len() != 3 {
             return None;
         }
@@ -25,13 +27,13 @@ impl Coordinates {
         let latitude = vec![
             Rational::from(frac_to_tuple(Fraction::from(self.latitude.1))),
             Rational::from(frac_to_tuple(Fraction::from(self.latitude.2))),
-            Rational::from(frac_to_tuple(Fraction::from(self.latitude.3)))
+            Rational::from(frac_to_tuple(Fraction::from(self.latitude.3))),
         ];
 
         let longitude = vec![
             Rational::from(frac_to_tuple(Fraction::from(self.longitude.1))),
             Rational::from(frac_to_tuple(Fraction::from(self.longitude.2))),
-            Rational::from(frac_to_tuple(Fraction::from(self.longitude.3)))
+            Rational::from(frac_to_tuple(Fraction::from(self.longitude.3))),
         ];
 
         (latitude, longitude)
